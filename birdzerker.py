@@ -53,10 +53,19 @@ class Player(arcade.Sprite):
         self.current_frame = 0
         self.last_frame = len(textures)
         self.textures = textures
+        self.hit_frame = 0
     
     def update(self, delta_time: float = 1/60):
-        self.center_x += self.change_x
-        self.center_y += self.change_y
+        if self.hit_frame == 0:
+            self.center_x += self.change_x
+            self.center_y += self.change_y
+        else:
+            if self.hit_frame < 72:
+                self.angle = self.hit_frame * 5
+                self.hit_frame += 1
+            else:
+                self.angle = 0
+                self.hit_frame = 0
         if self.current_frame < self.last_frame - 1:
             self.current_frame += 1
         else:
@@ -83,7 +92,6 @@ class Enemy(arcade.Sprite):
         )
         self.played_died_sound = False
         self.played_player_hit_sound = False
-        self.last_y_direction = 0
     
     def update(self, delta_time: float = 1/60):
         self.center_x += self.change_x
@@ -142,14 +150,17 @@ class GameView(arcade.View):
         self.window.set_background_color = arcade.csscolor.LIGHT_SKY_BLUE
         self.chimed = False
         self.enemy_countdown = 20
-        self.enemy_bird_speed = 0.5
+        self.enemy_bird_speed = 0.6
         self.game_over = False
         self.cloud_countdown = 30
         self.cloud_speed = 0.1
         self.orb_countdown = 50
         self.orb_speed = 0.7
-        self.spikes_countdown = 40
+        self.spikes_countdown = 35
         self.spikes_speed = 0.2
+        self.spikes_size = 0.2
+        self.blades_countdown = 40
+        self.blades_speed = 1
         self.health_pickup_sound = arcade.Sound(
             resource_path('resources/sounds/health_pickup.wav'),
             streaming = True
@@ -161,6 +172,8 @@ class GameView(arcade.View):
         self.player_speed = 1
 
     def setup(self):
+        self.blades_list = arcade.SpriteList()
+        self.blades_hit = {}
         self.spikes_list = arcade.SpriteList()
         self.spikes_hit = {}
         self.clouds_list = arcade.SpriteList()
@@ -213,6 +226,18 @@ class GameView(arcade.View):
         arcade.schedule(
             function_pointer=self.add_spikes, interval=self.spikes_countdown
         )
+        arcade.schedule(
+            function_pointer=self.add_blades, interval=self.blades_countdown
+        )
+        self.game_over_text = arcade.Text(
+            "GAME OVER",
+            0,
+            SCREEN_HEIGHT // 2 - 32,
+            arcade.color.GRAY,
+            64,
+            SCREEN_WIDTH,
+            'center'
+        )
 
     def add_cloud(self, dt:float):
         if not self.game_over:
@@ -240,7 +265,7 @@ class GameView(arcade.View):
             if self.enemy_countdown < 2:
                 self.enemy_countdown = 2
             if self.enemy_bird_speed < 2:
-                self.enemy_bird_speed += 0.1
+                self.enemy_bird_speed += 0.15
             arcade.unschedule(function_pointer=self.add_enemy)
             arcade.schedule(
                 function_pointer=self.add_enemy, interval=self.enemy_countdown
@@ -268,34 +293,60 @@ class GameView(arcade.View):
             if direction == 0:
                 new_spikes = arcade.Sprite(
                     resource_path('resources/images/spikes/spikes_down.png'),
-                    scale = 0.3
+                    scale = self.spikes_size
                 )
                 center_y = SCREEN_HEIGHT - 50
             else:
                 new_spikes = arcade.Sprite(
                     resource_path('resources/images/spikes/spikes_up.png'),
-                    scale = 0.3
+                    scale = self.spikes_size
                 )
                 center_y = 50
             new_spikes.center_x = SCREEN_WIDTH
             new_spikes.center_y = center_y
             self.spikes_list.append(new_spikes)
             self.spikes_hit[new_spikes] = False
-            self.spikes_countdown -= 1
+            self.spikes_countdown -= 2
             self.spikes_speed += 0.05
+            self.spikes_size += 0.05
             arcade.unschedule(function_pointer=self.add_spikes)
             arcade.schedule(
                 function_pointer=self.add_spikes, interval=self.spikes_countdown
             )
 
+    def add_blades(self, dt:float):
+        if not self.game_over:
+            new_blade = arcade.Sprite(
+                resource_path('resources/images/blades/blade_1.png'),
+                scale = 0.1)
+            new_blade.center_x = SCREEN_WIDTH
+            new_blade.center_y = randint(30, SCREEN_HEIGHT - 30)
+            self.blades_list.append(new_blade)
+            self.blades_hit[new_blade] = False
+            self.blades_countdown -= 1
+            self.blades_speed += 0.1
+            arcade.unschedule(function_pointer=self.add_blades)
+            arcade.schedule(
+                function_pointer=self.add_blades, interval=self.blades_countdown
+            )
+            
+
     
     def on_update(self, delta_time):
+        blade_hits = arcade.check_for_collision_with_list(
+            sprite=self.player, sprite_list=self.blades_list
+            )
+        for blade_hit in blade_hits:
+            if not self.blades_hit[blade_hit]:
+                self.player_health -=5
+                self.blades_hit[blade_hit] = True
+                arcade.play_sound(self.player_hit_sound)
         spike_hits = arcade.check_for_collision_with_list(
             sprite=self.player, sprite_list=self.spikes_list
             )
         for spike_hit in spike_hits:
             if not self.spikes_hit[spike_hit]:
-                self.player_health -=1
+                self.player_health -=3
                 self.spikes_hit[spike_hit] = True
                 arcade.play_sound(self.player_hit_sound)         
         bird_hits = arcade.check_for_collision_with_list(
@@ -309,11 +360,15 @@ class GameView(arcade.View):
                     bird_hit.dead = True
                     bird_hit.play_died_sound()
                 else:
-                    self.player_health -= 1
+                    self.player_health -= 2
                     bird_hit.hit = True
                     bird_hit.play_player_hit_sound()
+                    self.player.hit_frame = 1
         if self.player_health < 1:
             # unschedule schedulers
+            arcade.unschedule(function_pointer=self.add_enemy)
+            arcade.unschedule(function_pointer=self.add_spikes)
+            arcade.unschedule(function_pointer=self.add_orb)
             self.game_over = True
             if not self.chimed:
                 arcade.play_sound(self.game_over_sound)
@@ -325,13 +380,6 @@ class GameView(arcade.View):
             self.player_health += 1
             arcade.play_sound(self.health_pickup_sound)
             orb_hit.remove_from_sprite_lists()
-        orb_collisions = []    
-        for enemy in self.enemies_list:
-            orb_collisions = arcade.check_for_collision_with_list(
-                sprite = enemy, sprite_list=self.orbs_list
-                )
-        for orb in orb_collisions:
-            orb.remove_from_sprite_lists()
         if self.player.change_y != 1:
             self.player.change_y = -0.5
         if self.player.center_y < 30:
@@ -345,9 +393,10 @@ class GameView(arcade.View):
         self.player_texture = self.player_textures[self.sprite_frame]
         for enemy in self.enemies_list:
             enemy.change_x = -(self.enemy_bird_speed) * self.player_speed
-            choice_list = [-0.5, 0, 1]
-            choice_list.append(enemy.last_y_direction)
-            enemy.change_y = choice(choice_list)
+            if enemy.center_y <= self.player.center_y:
+                enemy.change_y = 0.5
+            elif enemy.center_y > self.player.center_y:
+                enemy.change_y = -0.5
             if enemy.center_y < 30:
                 enemy.center_y = 30
             if enemy.center_y > SCREEN_HEIGHT - 30:
@@ -366,10 +415,16 @@ class GameView(arcade.View):
             orb.change_x = -(self.orb_speed) * self.player_speed
             if orb.center_x < -30:
                 orb.remove_from_sprite_lists()
+        for blade in self.blades_list:
+            blade.angle += 6
+            blade.change_x = -(self.blades_speed) * self.player_speed
+            if blade.center_x < -25:
+                blade.remove_from_sprite_lists()
         self.spikes_list.update()
         self.clouds_list.update()
         self.orbs_list.update()
         self.enemies_list.update()
+        self.blades_list.update()
         self.player_list.update()
         
     def on_key_press(self, key, modifiers):
@@ -388,15 +443,19 @@ class GameView(arcade.View):
     
     def on_draw(self):
         self.clear()
-        self.spikes_list.draw()
-        self.clouds_list.draw()
-        self.orbs_list.draw()
-        self.enemies_list.draw()
-        self.player_list.draw()
-        # health bar
-        length = self.player_health * 20
-        start_x = 20
-        arcade.draw_line(start_x, 20, start_x + length, 20, arcade.color.YELLOW, 10)
+        if not self.game_over:
+            self.spikes_list.draw()
+            self.clouds_list.draw()
+            self.orbs_list.draw()
+            self.enemies_list.draw()
+            self.blades_list.draw()
+            self.player_list.draw()
+            # health bar
+            length = self.player_health * 20
+            start_x = 20
+            arcade.draw_line(start_x, 20, start_x + length, 20, arcade.color.YELLOW, 10)
+        else:
+            self.game_over_text.draw()
         self.score_text = arcade.Text(
             f"Score: {self.score}",
             SCREEN_WIDTH - 100,
