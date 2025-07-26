@@ -160,7 +160,7 @@ class GameView(arcade.View):
         self.spikes_speed = 0.2
         self.spikes_size = 0.2
         self.blades_countdown = 40
-        self.blades_speed = 1
+        self.blades_speed = 1.5
         self.health_pickup_sound = arcade.Sound(
             resource_path('resources/sounds/health_pickup.wav'),
             streaming = True
@@ -306,7 +306,7 @@ class GameView(arcade.View):
             new_spikes.center_y = center_y
             self.spikes_list.append(new_spikes)
             self.spikes_hit[new_spikes] = False
-            self.spikes_countdown -= 2
+            self.spikes_countdown -= 5
             self.spikes_speed += 0.05
             self.spikes_size += 0.05
             arcade.unschedule(function_pointer=self.add_spikes)
