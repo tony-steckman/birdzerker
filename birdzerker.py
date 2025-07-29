@@ -151,8 +151,8 @@ class GameView(arcade.View):
         self.game_over = False
         self.cloud_countdown = 30
         self.cloud_speed = 0.1
-        self.orb_countdown = 50
-        self.orb_speed = 0.7
+        self.orb_countdown = 25
+        self.orb_speed = 0.5
         self.spikes_countdown = 30
         self.spikes_speed = 0.2
         self.spikes_size = 0.2
@@ -175,17 +175,17 @@ class GameView(arcade.View):
         self.player_max_health = 15
         self.sprite_frame = 0
         self.chimed = False
-        self.enemy_countdown = 20
+        self.enemy_countdown = 18
         self.enemy_bird_speed = 0.6
         self.game_over = False
         self.cloud_countdown = 30
         self.cloud_speed = 0.1
-        self.orb_countdown = 50
-        self.orb_speed = 0.7
-        self.spikes_countdown = 35
+        self.orb_countdown = 25
+        self.orb_speed = 0.5
+        self.spikes_countdown = 30
         self.spikes_speed = 0.2
         self.spikes_size = 0.2
-        self.blades_countdown = 40
+        self.blades_countdown = 36
         self.blades_speed = 2
         self.player_speed = 1
         self.setup()
@@ -278,7 +278,7 @@ class GameView(arcade.View):
             self.enemies_list.append(new_enemy)
             self.enemy_countdown -= 2
             if self.enemy_countdown < 2:
-                self.enemy_countdown = 2
+                self.enemy_countdown = randint(2, 4)
             if self.enemy_bird_speed < 2:
                 self.enemy_bird_speed = 2
             arcade.unschedule(function_pointer=self.add_enemy)
@@ -298,7 +298,7 @@ class GameView(arcade.View):
             self.orb_countdown += 1
             if self.orb_countdown > 99:
                 self.orb_countdown = 99
-            self.orb_speed += 0.5
+            self.orb_speed += 0.2
             if self.orb_speed > 4:
                 self.orb_speed = 4
             arcade.unschedule(function_pointer=self.add_orb)
@@ -314,26 +314,28 @@ class GameView(arcade.View):
                     resource_path('resources/images/spikes/spikes_down.png'),
                     scale = self.spikes_size
                 )
-                center_y = SCREEN_HEIGHT - 50
+                center_y = SCREEN_HEIGHT - (new_spikes.height/2)
             else:
                 new_spikes = arcade.Sprite(
                     resource_path('resources/images/spikes/spikes_up.png'),
                     scale = self.spikes_size
                 )
-                center_y = 50
+                center_y = new_spikes.height / 2
             new_spikes.center_x = SCREEN_WIDTH
             new_spikes.center_y = center_y
             self.spikes_list.append(new_spikes)
             self.spikes_hit[new_spikes] = False
-            self.spikes_countdown -= 5
+            self.spikes_countdown -= 2
             if self.spikes_countdown < 2:
                 self.spikes_countdown = 2
+            """
             self.spikes_speed += 0.05
             if self.spikes_speed > 1.5:
                 self.spikes_speed = 1.5
-            self.spikes_size += 0.05
-            if self.spikes_size > 0.3:
-                self.spikes_size == 0.3
+            """
+            self.spikes_size += 0.01
+            if self.spikes_size > 0.25:
+                self.spikes_size == 0.25
             arcade.unschedule(function_pointer=self.add_spikes)
             arcade.schedule(
                 function_pointer=self.add_spikes, interval=self.spikes_countdown
@@ -348,10 +350,10 @@ class GameView(arcade.View):
             new_blade.center_y = self.player.center_y
             self.blades_list.append(new_blade)
             self.blades_hit[new_blade] = False
-            self.blades_countdown -= 3
-            if self.blades_countdown < 1:
-                self.blades_countdown = 1
-            self.blades_speed += 0.2
+            self.blades_countdown -= 2
+            if self.blades_countdown < 3:
+                self.blades_countdown = 3
+            self.blades_speed += 0.1
             if self.blades_speed > 6:
                 self.blades_speed = 6
             arcade.unschedule(function_pointer=self.add_blades)
