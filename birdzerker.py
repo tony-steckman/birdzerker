@@ -117,6 +117,9 @@ class GameView(arcade.View):
 
     def __init__(self):
         super().__init__()
+        self.background_music = arcade.Sound(
+            resource_path('resources/music/game-on-153596.mp3')
+        )
         self.score = 0
         self.player = None
         self.player_health = 10
@@ -191,6 +194,7 @@ class GameView(arcade.View):
         self.setup()
 
     def setup(self):
+        arcade.play_sound(self.background_music, volume=0.02, loop=True)
         self.blades_list = arcade.SpriteList()
         self.blades_hit = {}
         self.spikes_list = arcade.SpriteList()
@@ -320,7 +324,7 @@ class GameView(arcade.View):
                     resource_path('resources/images/spikes/spikes_up.png'),
                     scale = self.spikes_size
                 )
-                center_y = new_spikes.height / 2
+                center_y = new_spikes.height/2
             new_spikes.center_x = SCREEN_WIDTH
             new_spikes.center_y = center_y
             self.spikes_list.append(new_spikes)
@@ -370,7 +374,7 @@ class GameView(arcade.View):
                 )
             for blade_hit in blade_hits:
                 if not self.blades_hit[blade_hit]:
-                    self.player_health -=5
+                    self.player_health -=3
                     self.blades_hit[blade_hit] = True
                     if self.player.hit_frame == 0:
                         self.player.hit_frame = 1
@@ -379,7 +383,7 @@ class GameView(arcade.View):
                 )
             for spike_hit in spike_hits:
                 if not self.spikes_hit[spike_hit]:
-                    self.player_health -=3
+                    self.player_health -=2
                     self.spikes_hit[spike_hit] = True
                     if self.player.hit_frame == 0:
                         self.player.hit_frame = 1
@@ -394,7 +398,7 @@ class GameView(arcade.View):
                         bird_hit.dead = True
                         bird_hit.play_died_sound()
                     else:
-                        self.player_health -= 2
+                        self.player_health -= 1
                         bird_hit.hit = True
                         if self.player.hit_frame == 0:
                             self.player.hit_frame = 1
@@ -439,11 +443,11 @@ class GameView(arcade.View):
                     enemy.remove_from_sprite_lists()
             for spikes in self.spikes_list:
                 spikes.change_x = -(self.spikes_speed) * self.player_speed
-                if spikes.center_x < -50:
+                if spikes.center_x < -30:
                     spikes.remove_from_sprite_lists()
             for cloud in self.clouds_list:
                 cloud.change_x = -(self.cloud_speed) * self.player_speed
-                if cloud.center_x < -50:
+                if cloud.center_x < -30:
                     cloud.remove_from_sprite_lists()
             for orb in self.orbs_list:
                 orb.change_x = -(self.orb_speed) * self.player_speed
