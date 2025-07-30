@@ -55,7 +55,7 @@ class Player(arcade.Sprite):
         self.hit_frame = 0
         self.player_hit_sound = arcade.Sound(
             resource_path('resources/sounds/player_hit.flac'),
-            streaming = True
+            streaming = False
         )
         self.played_player_hit_sound = False
     
